@@ -5,7 +5,9 @@ from Config import Config_dict
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from flask_session import Session
+from info.modules.index import index_blue
 
+db = SQLAlchemy()
 
 def curren_app(config_name):
 
@@ -17,11 +19,13 @@ def curren_app(config_name):
 
     myloggin(curtten_config.LEVELNAME)
 
-    db = SQLAlchemy(app)
+    db.init_app(app)
 
     CSRFProtect(app)
 
     Session(app)
+
+    app.register_blueprint(index_blue)
 
     return app
 
