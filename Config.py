@@ -8,7 +8,7 @@ class Config(object):
 
     DEBUG = True
 
-    #日志文件权限
+    #日志文件级别
     LEVELNAME = "DEBUG"
 
     #mysql配置文件
