@@ -5,15 +5,18 @@ from Config import Config_dict
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from flask_session import Session
-from info.modules.index import index_blue
+from redis import StrictRedis
+# from info.modules.index import index_blue
 
 db = SQLAlchemy()
+
+redis_store = None
 
 def curren_app(config_name):
 
     app = Flask(__name__)
 
-    curtten_config = Config_dict[config_name]
+    curtten_config = Config_dict.get(config_name)
 
     app.config.from_object(curtten_config)
 
@@ -21,12 +24,18 @@ def curren_app(config_name):
 
     db.init_app(app)
 
-    CSRFProtect(app)
+    global redis_store
+    redis_store = StrictRedis (host=curtten_config.redis_host,port=curtten_config.redis_port,decode_responses=True)
 
     Session(app)
 
+
+    CSRFProtect(app)
+
+    from info.modules.index import index_blue
     app.register_blueprint(index_blue)
 
+    print(app.url_map)
     return app
 
 
