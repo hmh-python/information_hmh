@@ -1,8 +1,6 @@
 from info import curren_app
 
-
-app = curren_app()
-
+app = curren_app("Develo")
 
 @app.route('/')
 def index():

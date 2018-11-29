@@ -1,11 +1,15 @@
 from redis import StrictRedis
 from datetime import timedelta
 
+
 class Config(object):
 
     SECRET_KEY = "qawsedrf"
 
     DEBUG = True
+
+    #日志文件权限
+    LEVELNAME = "DEBUG"
 
     #mysql配置文件
     SQLALCHEMY_DATABASE_URI = "mysql+pymysql://root:mysql@localhost:3306/information_hmh"
@@ -25,15 +29,19 @@ class Config(object):
 class DevelopementConfig(Config):
     '''开发者模式'''
     DEBUG = True
+    LEVELNAME = "DEBUG"
 
 
 class ProductionConfig(Config):
     '''生产者模式'''
     DEBUG = False
+    LEVELNAME = "WARNING"
+
 
 class TestingConfig(Config):
     '''测试者模式'''
     DEBUG = True
+
 
 
 Config_dict = {
