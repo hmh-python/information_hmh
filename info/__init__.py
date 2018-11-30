@@ -30,7 +30,7 @@ def curren_app(config_name):
     Session(app)
 
 
-    CSRFProtect(app)
+    # CSRFProtect(app)
 
     from info.modules.index import index_blue
     app.register_blueprint(index_blue)
