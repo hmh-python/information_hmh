@@ -8,7 +8,27 @@ from info.utils.response_code import RET
 from . import passport_bule
 from info.utils.captcha import captcha
 
-@passport_bule.route('/sms_code',methods=["GET","POST"])
+#注册信息
+@passport_bule.route('/register',methods=["POST"])
+def register_index():
+    """请求路径: /passport/register
+        请求方式: POST
+        请求参数: mobile, sms_code,password
+        返回值: errno, errmsg
+
+        1.获取参数
+        2.检验参数,为空效验
+        3.根据手机号取出redis中短信验证码
+        4.短信验证码正确性
+        5.检查密码是否符合要求
+        6.查看数据库中是否有该用户
+        7.把用户插入数据库中,完成注册
+        8.返回相应
+
+    """
+
+#手机验证码
+@passport_bule.route('/sms_code',methods=["POST"])
 def sms_code():
     """请求路径: /passport/sms_code
     请求方式: POST
@@ -49,17 +69,31 @@ def sms_code():
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR,errmsg="提取验证码错误!")
-    if image_code.lower() != redis_image_code.lower():
-        redis_store.delete(image_code_id)
-        return jsonify(errno=RET.DATAERR,errmsg="验证码输入有误！")
+    try:
+        if image_code.lower() != redis_image_code.lower():
+            redis_store.delete(image_code_id)
+            return jsonify(errno=RET.DATAERR,errmsg="验证码输入有误！")
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="删除图片验证码失败！")
     if image_code.lower() == redis_image_code.lower():
         # return jsonify(errno=RET.OK, errmsg="验证码输入正确！")
-        sms_num = "06%d"%random.randint(0-999999)
+        sms_num = "%06d"%random.randint(0,999999)
         ccp = CCP()
-        ccp.send_template_sms(mobile, [sms_num, constants.SMS_CODE_REDIS_EXPIRES/60], 1)
+        result = ccp.send_template_sms(mobile, [sms_num, constants.SMS_CODE_REDIS_EXPIRES/60], 1)
+    try:
+        if result  == 0:
+            redis_store.set("sms_code:%s"%mobile,sms_num,constants.SMS_CODE_REDIS_EXPIRES)
+            return jsonify(errno=RET.OK,errmsg="验证码已发送")
+        elif result == -1:
+            return jsonify(errno=RET.THIRDERR,errmsg="发送短信验证码失败!")
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="数据库插入失败！")
 
-    return ('hello sms_code')
+    # return ('hello sms_code')
 
+#图片验证码
 @passport_bule.route('/image_code')
 def get_code():
     """
