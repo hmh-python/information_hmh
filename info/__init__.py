@@ -35,7 +35,12 @@ def curren_app(config_name):
     from info.modules.index import index_blue
     app.register_blueprint(index_blue)
 
-    # print(app.url_map)
+
+    from info.modules.passport import passport_bule
+    app.register_blueprint(passport_bule)
+
+
+    print(app.url_map)
     return app
 
 
