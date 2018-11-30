@@ -5,8 +5,8 @@ from info import redis_store
 @index_blue.route('/',methods=["GET","POST"])
 def show_index():
 
-    # redis_store.set("name","laohe")
-    # print (redis_store.get("name"))
+    redis_store.set("name","laohe")
+    print (redis_store.get("name"))
 
 
     return render_template("news/index.html")
