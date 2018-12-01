@@ -1,8 +1,8 @@
 import random
 import re
 from flask import make_response,request,current_app, jsonify,json
-from info import constants
-from info import redis_store
+from info import constants,redis_store,db
+from info import models
 from info.libs.yuntongxun.sms import CCP
 from info.utils.response_code import RET
 from . import passport_bule
@@ -26,6 +26,33 @@ def register_index():
         8.返回相应
 
     """
+    request_dict = request.get_json()
+    mobile = request_dict.get("mobile")
+    sms_code = request_dict.get("sms_code")
+    password = request_dict.get("password")
+    if not all([mobile,sms_code,password]):
+        return jsonify(errno=RET.NODATA,errmsg="参数不能为空")
+    try:
+        redis_sms_code = redis_store.get("sms_code:%s"%mobile)
+        if sms_code != redis_sms_code:
+            return jsonify(errno=RET.DATAERR,errmsg="验证码不正确!")
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="数据库提取验证码失败!")
+    if  re.match(r"(\d{6,13})|(\w{6,13})",password):
+        return jsonify(errno=RET.DATAERR,errmsg="密码过于简单!")
+    try:
+        user = models.User.query.filter(models.User.nick_name==mobile)
+        if mobile == user:
+            return jsonify(errno=RET.DATAEXIST,errmsg="账号已存在!")
+        else:
+            add_user = models.User(nick_name=mobile,password_hash=password,mobile=mobile)
+            db.session.add(add_user)
+            db.session.commit()
+            return jsonify(errno=RET.OK,errmsg="账号注册成功!")
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="数据库查询数据错误!")
 
 #手机验证码
 @passport_bule.route('/sms_code',methods=["POST"])
