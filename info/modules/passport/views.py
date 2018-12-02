@@ -1,12 +1,71 @@
 import random
 import re
-from flask import make_response,request,current_app, jsonify,json
+from flask import make_response,request,current_app, jsonify,json,session
 from info import constants,redis_store,db
 from info import models
 from info.libs.yuntongxun.sms import CCP
 from info.utils.response_code import RET
 from . import passport_bule
 from info.utils.captcha import captcha
+
+
+#退出
+@passport_bule.route('/logout',methods=["POST"])
+def logout_index():
+    """
+    请求路径: /passport/logout
+    请求方式: POST
+    请求参数： 当点击退出的时候浏览器会把自带的session返回回来
+    :return:
+    """
+    try:
+        session.pop("user_id",None)
+        session.pop("mobile",None)
+        session.pop("nick_name",None)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DATAERR,errmsg="参数错误!")
+
+    return jsonify(errno=RET.OK,errmsg="账号已退出!")
+
+#登陆
+@passport_bule.route('/login',methods=["POST"])
+def login_index():
+    """
+    请求路径: /passport/login
+    请求方式: POST
+    请求参数: mobile,password
+    返回值: errno, errmsg
+
+    1.接受参数
+    2.判断参数是否为空
+    3.判断手机号是否存在(根据手机号查询用户对象)
+    4.判断用户是否存在
+    5.判断密码是否正确
+    6.记录用户的登陆信息到session
+    7.返回响应
+    :return:
+    """
+    request_dict = request.get_json()
+    mobile = request_dict.get("mobile")
+    password = request_dict.get("password")
+
+    if not all ([mobile,password]):
+        return jsonify(errno=RET.PARAMERR,errmsg="参数不全")
+    try:
+        db_user = models.User.query.filter(models.User.mobile==mobile).first()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="数据库查询错误!")
+    if not db_user:
+        return jsonify(errno=RET.NODATA,errmsg="用户不存在,请注册!")
+    if not db_user.check_passowrd(password):
+        return jsonify(errno=RET.DATAERR,errmsg="密码错误,请重新输入!")
+    if mobile == db_user.mobile and db_user.check_passowrd(password):
+        session["user_id"] = db_user.id
+        session["mobile"] = mobile
+        session["nick_name"] = db_user.nick_name
+        return jsonify(errno=RET.OK,errmsg="登陆成功!")
 
 #注册信息
 @passport_bule.route('/register',methods=["POST"])
@@ -39,14 +98,19 @@ def register_index():
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR,errmsg="数据库提取验证码失败!")
-    if  re.match(r"(\d{6,13})|(\w{6,13})",password):
+    if not redis_sms_code:
+        return jsonify(errno=RET.NODATA,errmsg="验证码已过期!")
+    if not re.match(r"\d{6,13}",password):
         return jsonify(errno=RET.DATAERR,errmsg="密码过于简单!")
     try:
         user = models.User.query.filter(models.User.nick_name==mobile)
         if mobile == user:
             return jsonify(errno=RET.DATAEXIST,errmsg="账号已存在!")
         else:
-            add_user = models.User(nick_name=mobile,password_hash=password,mobile=mobile)
+            add_user = models.User()
+            add_user.nick_name = mobile
+            add_user.password = password
+            add_user.mobile = mobile
             db.session.add(add_user)
             db.session.commit()
             return jsonify(errno=RET.OK,errmsg="账号注册成功!")
@@ -106,8 +170,9 @@ def sms_code():
     if image_code.lower() == redis_image_code.lower():
         # return jsonify(errno=RET.OK, errmsg="验证码输入正确！")
         sms_num = "%06d"%random.randint(0,999999)
-        ccp = CCP()
-        result = ccp.send_template_sms(mobile, [sms_num, constants.SMS_CODE_REDIS_EXPIRES/60], 1)
+        # ccp = CCP()
+        # result = ccp.send_template_sms(mobile, [sms_num, constants.SMS_CODE_REDIS_EXPIRES/60], 1)
+        result = 0
     try:
         if result  == 0:
             redis_store.set("sms_code:%s"%mobile,sms_num,constants.SMS_CODE_REDIS_EXPIRES)

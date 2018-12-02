@@ -3,7 +3,7 @@ from logging.handlers import RotatingFileHandler
 from flask import Flask
 from Config import Config_dict
 from flask_sqlalchemy import SQLAlchemy
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect,generate_csrf
 from flask_session import Session
 from redis import StrictRedis
 # from info.modules.index import index_blue
@@ -29,8 +29,7 @@ def curren_app(config_name):
 
     Session(app)
 
-
-    # CSRFProtect(app)
+    CSRFProtect(app)
 
     from info.modules.index import index_blue
     app.register_blueprint(index_blue)
@@ -39,9 +38,17 @@ def curren_app(config_name):
     from info.modules.passport import passport_bule
     app.register_blueprint(passport_bule)
 
+    @app.after_request
+    def at_request(resp):
+        csrf_token = generate_csrf()
+        resp.set_cookie("csrf_token",csrf_token)
+        return resp
 
     print(app.url_map)
     return app
+
+
+
 
 
 def myloggin(levelname):
@@ -56,3 +63,4 @@ def myloggin(levelname):
     file_log_handler.setFormatter(formatter)
     # 为全局的日志工具对象（flask app使用的）添加日志记录器
     logging.getLogger().addHandler(file_log_handler)
+

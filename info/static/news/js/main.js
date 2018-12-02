@@ -124,7 +124,7 @@ $(function(){
             "mobile":mobile,
             "password":password
         }
-        /*
+
         $.ajax({
             url:'/passport/login',
             type:'post',
@@ -141,7 +141,7 @@ $(function(){
 
             }
         })
-        */
+
     })
 
 
@@ -188,7 +188,7 @@ $(function(){
             type:'post',
             data:JSON.stringify(params),
             contentType:'application/json',
-            // headers:{'X-CSRFToken':getCookie('csrf_token')},
+            headers:{'X-CSRFToken':getCookie('csrf_token')},
             success: function (resp) {
                 //判断是否注册成功
                 if(resp.errno == '0'){
@@ -205,7 +205,7 @@ $(function(){
 
 //退出登陆
 function logout() {
-    /*
+
     $.ajax({
         url:'/passport/logout',
         type:'post',
@@ -214,7 +214,7 @@ function logout() {
             window.location.reload()
         }
     })
-    */
+
 }
 
 
@@ -267,14 +267,14 @@ function sendSMSCode() {
         "image_code_id":imageCodeId
     }
 
-    //发送获取短信请求 // headers:{'X-CSRFToken':getCookie('csrf_token')},
+    //发送获取短信请求
 
     $.ajax({
         url:'/passport/sms_code',//请求地址
         type:'post',
         data:JSON.stringify(params),
         contentType:'application/json',
-
+        headers:{'X-CSRFToken':getCookie('csrf_token')},
         success: function (resp) {
             //判断是否请求成功
             if(resp.errno == '0'){
