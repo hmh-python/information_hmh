@@ -1,3 +1,4 @@
+from datetime import datetime
 import random
 import re
 from flask import make_response,request,current_app, jsonify,json,session
@@ -65,6 +66,8 @@ def login_index():
         session["user_id"] = db_user.id
         session["mobile"] = mobile
         session["nick_name"] = db_user.nick_name
+        db_user.last_login = datetime.now()
+
         return jsonify(errno=RET.OK,errmsg="登陆成功!")
 
 #注册信息
@@ -112,7 +115,7 @@ def register_index():
             add_user.password = password
             add_user.mobile = mobile
             db.session.add(add_user)
-            db.session.commit()
+            # db.session.commit()  设置了自动提交
             return jsonify(errno=RET.OK,errmsg="账号注册成功!")
     except Exception as e:
         current_app.logger.error(e)

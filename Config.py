@@ -14,6 +14,7 @@ class Config(object):
     #mysql配置文件
     SQLALCHEMY_DATABASE_URI = "mysql+pymysql://root:mysql@localhost:3306/information_hmh"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_COMMIT_ON_TEARDOWN = True
 
     #redis配置
     redis_host = "127.0.0.1"
