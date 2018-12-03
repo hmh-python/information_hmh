@@ -44,6 +44,9 @@ def curren_app(config_name):
         resp.set_cookie("csrf_token",csrf_token)
         return resp
 
+    from info.modules.news import news_blue
+    app.register_blueprint(news_blue)
+
     print(app.url_map)
     return app
 

@@ -4,7 +4,7 @@ from info.utils.response_code import RET
 from . import index_blue
 from flask import render_template,current_app,session, jsonify,request
 
-
+#显示新闻滑动数据
 @index_blue.route('/newslist')
 def news_list():
     """
@@ -42,7 +42,7 @@ def news_list():
         o_new_cid = ""
         if new_cid != 1:
             o_new_cid = (models.News.category_id == new_cid)
-        paginate = models.News.query.filter(o_new_cid).order_by(models.News.update_time.desc()).paginate(new_page,per_page,False)
+        paginate = models.News.query.filter(o_new_cid).order_by(models.News.create_time.desc()).paginate(new_page,per_page,False)
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR,errmsg="数据库查询失败!")
