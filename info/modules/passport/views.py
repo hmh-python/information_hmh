@@ -103,20 +103,24 @@ def register_index():
         return jsonify(errno=RET.DBERR,errmsg="数据库提取验证码失败!")
     if not redis_sms_code:
         return jsonify(errno=RET.NODATA,errmsg="验证码已过期!")
-    if not re.match(r"\d{6,13}",password):
-        return jsonify(errno=RET.DATAERR,errmsg="密码过于简单!")
+    # if not re.match(r"(\d{6,13})|(\w{6,13})",password):
+    #     return jsonify(errno=RET.DATAERR,errmsg="密码过于简单!")
     try:
-        user = models.User.query.filter(models.User.nick_name==mobile)
-        if mobile == user:
-            return jsonify(errno=RET.DATAEXIST,errmsg="账号已存在!")
-        else:
-            add_user = models.User()
-            add_user.nick_name = mobile
-            add_user.password = password
-            add_user.mobile = mobile
-            db.session.add(add_user)
-            # db.session.commit()  设置了自动提交
-            return jsonify(errno=RET.OK,errmsg="账号注册成功!")
+        user = models.User.query.filter(models.User.nick_name==mobile).first()
+        print (user)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="数据库查询数据错误!")
+    if user:
+        return jsonify(errno=RET.DATAEXIST,errmsg="账号已存在!")
+    try:
+        add_user = models.User()
+        add_user.nick_name = mobile
+        add_user.password = password
+        add_user.mobile = mobile
+        db.session.add(add_user)
+        # db.session.commit()  设置了自动提交
+        return jsonify(errno=RET.OK,errmsg="账号注册成功!")
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR,errmsg="数据库查询数据错误!")

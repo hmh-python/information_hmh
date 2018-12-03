@@ -6,7 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect,generate_csrf
 from flask_session import Session
 from redis import StrictRedis
-# from info.modules.index import index_blue
+
 
 db = SQLAlchemy()
 
@@ -46,6 +46,9 @@ def curren_app(config_name):
 
     from info.modules.news import news_blue
     app.register_blueprint(news_blue)
+
+    from info.utils.commons import  index_class
+    app.add_template_filter(index_class,"index_class")
 
     print(app.url_map)
     return app

@@ -1,11 +1,13 @@
 from info import models
 from info.constants import HOME_PAGE_MAX_NEWS
+from info.utils.commons import user_login_data
 from info.utils.response_code import RET
 from . import index_blue
-from flask import render_template,current_app,session, jsonify,request
+from flask import render_template,current_app,session, jsonify,request,g
 
 #显示新闻滑动数据
 @index_blue.route('/newslist')
+@user_login_data
 def news_list():
     """
     请求方式:get
@@ -60,15 +62,16 @@ def news_list():
 
 #显示首页排行和分类信息
 @index_blue.route('/',methods=["GET","POST"])
+@user_login_data
 def show_index():
     #查看是否有session信息
-    user_id = session.get("user_id")
-    user = None
-    if user_id:
-        try:
-            user = models.User.query.get(user_id)
-        except Exception as e:
-            current_app.logger.error(e)
+    # user_id = session.get("user_id")
+    # user = None
+    # if user_id:
+    #     try:
+    #         user = models.User.query.get(user_id)
+    #     except Exception as e:
+    #         current_app.logger.error(e)
     #排行显示前10条数据
     try:
         news_list =  models.News.query.order_by(models.News.clicks.desc()).limit(HOME_PAGE_MAX_NEWS).all()
@@ -93,7 +96,7 @@ def show_index():
 
 
     data = {
-        "user_info":user.to_dict() if user else "",
+        "user_info":g.user.to_dict() if g.user else "",
         "news_list" : news_list_ne,
         "new_category_list" : new_category_list
     }

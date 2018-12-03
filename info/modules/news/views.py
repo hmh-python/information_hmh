@@ -1,22 +1,25 @@
-from flask import session, jsonify,render_template,current_app
+from flask import session, jsonify,render_template,current_app,abort,g
 from info import models
+from info.utils.commons import user_login_data
 from info.utils.response_code import RET
 from . import news_blue
 
 @news_blue.route('/<int:num>')
+@user_login_data
 def news_item(num):
-    session_id = session.get("user_id")
-    # print (session_id)
-    user = None
-    if session_id:
-        try:
-            # user = models.User.query.filter(models.User.id == session_id).first()
-            user = models.User.query.get(session_id)
-        except Exception as e:
-            current_app.logger.error(e)
-            return jsonify(errno=RET.DBERR,errmsg="数据库查询失败!")
+    # session_id = session.get("user_id")
+    # # print (session_id)
+    # user = None
+    # if session_id:
+    #     try:
+    #         # user = models.User.query.filter(models.User.id == session_id).first()
+    #         user = models.User.query.get(session_id)
+    #     except Exception as e:
+    #         current_app.logger.error(e)
+    #         return jsonify(errno=RET.DBERR,errmsg="数据库查询失败!")
 
     # 使用num查询新闻信息
+    news = None
     try:
 
         # print(type(num))
@@ -26,6 +29,9 @@ def news_item(num):
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR,errmsg="数据库查询失败!")
 
+    if not news:
+        abort(404)
+
     # news_list= [ ]
     # news_list.append(news.to_dict())
     # 放入列表中是为了在模板中方便遍历,并不是所有数据都需要放入列表中！！！
@@ -34,7 +40,7 @@ def news_item(num):
 
     #热门数据
     try:
-        news_list = models.News.query.order_by(models.News.create_time.desc()).limit(6).all()
+        news_list = models.News.query.order_by(models.News.clicks.desc()).limit(6).all()
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR,errmsg="数据库查询失败!")
@@ -44,7 +50,7 @@ def news_item(num):
         n_news_list.append(item.to_dict())
 
     data = {
-        "user_info":user.to_dict() if user else "" ,#else 后面添加的需要是None 并不能是 “ ”这样表明是一个空格
+        "user_info":g.user.to_dict() if g.user else "" ,#else 后面添加的需要是None 并不能是 “ ”这样表明是一个空格
         "news_info":news.to_dict(),
         "n_news_list" :n_news_list
     }

@@ -137,15 +137,16 @@
             </div>
             <ul class="rank_list">
                 {% for item in data.n_news_list %}
-                    {% if loop.index == 1 %}
-                    <li><span class="first">{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>
-                    {% elif loop.index == 2 %}
-                    <li><span class="second">{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>
-                    {% elif loop.index == 3 %}
-                    <li><span class="third">{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>
-                    {% else %}
-                    <li><span>{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>
-                    {% endif %}
+                    <li><span class="{{ loop.index | index_class }}">{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>
+{#                    {% if loop.index == 1 %}#}
+{#                    <li><span class="first">{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>#}
+{#                    {% elif loop.index == 2 %}#}
+{#                    <li><span class="second">{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>#}
+{#                    {% elif loop.index == 3 %}#}
+{#                    <li><span class="third">{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>#}
+{#                    {% else %}#}
+{#                    <li><span>{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>#}
+{#                    {% endif %}#}
                 {% endfor %}
             </ul>
     </div>

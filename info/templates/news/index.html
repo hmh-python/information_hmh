@@ -15,20 +15,21 @@
 {% block connect_2 %}
     <ul class="list_con fl">
     <h1>正在拼命加载数据。。。。。。</h1>
-    {% for item in paginate_list %}
-    <li>
-        <a href="#" class="news_pic fl"><img src="{{ item.index_image_url }}"></a>
-        <a href="#" class="news_title fl">{{ item.title }}</a>
-        <a href="#" class="news_detail fl">{{ item.digest }}</a>
-        <div class="author_info fl">
-            <div class="author fl">
-                <img src="../../static/news/images/person.png" alt="author">
-                <a href="#">乐鸣</a>
-            </div>
-            <div class="time fl">2017-01-01 00:00:00</div>
-        </div>
-    </li>
-    {% endfor %}
+{#    此处不需要进行数据填写,在前段ajax接受到后端的数据会自动进行显示,对返回的数据进行处理,由于是滚动的所以从前台进行显示 #}
+{#    {% for item in paginate_list %}#}
+{#    <li>#}
+{#        <a href="#" class="news_pic fl"><img src="{{ item.index_image_url }}"></a>#}
+{#        <a href="#" class="news_title fl">{{ item.title }}</a>#}
+{#        <a href="#" class="news_detail fl">{{ item.digest }}</a>#}
+{#        <div class="author_info fl">#}
+{#            <div class="author fl">#}
+{#                <img src="../../static/news/images/person.png" alt="author">#}
+{#                <a href="#">乐鸣</a>#}
+{#            </div>#}
+{#            <div class="time fl">2017-01-01 00:00:00</div>#}
+{#        </div>#}
+{#    </li>#}
+{#    {% endfor %}#}
     </ul>
 {% endblock connect_2 %}
 {% block connect_3 %}
@@ -38,15 +39,16 @@
     </div>
     <ul class="rank_list">
         {% for item in data.news_list %}
-            {% if loop.index == 1 %}
-                <li><span class="first">{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>
-            {% elif loop.index == 2 %}
-                <li><span class="second">{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>
-            {% elif loop.index == 3 %}
-                <li><span class="third">{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>
-            {% else %}
-                <li><span>{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>
-            {% endif %}
+            <li><span class="{{ loop.index | index_class }}">{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>
+{#            {% if loop.index == 1 %}#}
+{#                <li><span class="first">{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>#}
+{#            {% elif loop.index == 2 %}#}
+{#                <li><span class="second">{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>#}
+{#            {% elif loop.index == 3 %}#}
+{#                <li><span class="third">{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>#}
+{#            {% else %}#}
+{#                <li><span>{{ loop.index }}</span><a href="#">{{ item.title }}</a></li>#}
+{#            {% endif %}#}
         {% endfor %}
     </ul>
 </div>
