@@ -45,14 +45,13 @@
                 <span class="time_souce fl">{{ data.news_info.create_time }} 来源: {{ data.news_info.source }}</span>
                 <span class="comment fr">{{ data.news_info.comments_count }}</span>
             </div>
-            {{ data.news_info.content |safe }}
 
-{#            <p class="summary">#}
-{#                摘要：昨天终结十一连阳之后，今天A股迅速重拾涨势，沪指收涨0.8%创逾两个月新高。房地产板块集体走强，尾盘更是放量大涨，万科A一度逼近涨停，最终收涨8.4%，股价创历史新高。#}
-{#            </p>#}
+            <p class="summary">
+                摘要：{{ data.news_info.digest }}
+            </p>
 {##}
 {#            <h4>恒指创收盘历史新高</h4>#}
-{##}
+            {{ data.news_info.content |safe }}
 {#            <p>#}
 {#            港股方面今天表现强劲，开年以来的上涨势头仍然延续，恒指收涨1.8%创下收盘新高。此前恒指的峰值是在2007年10月份盘中触及的31958点。</p>#}
 {#<p>#}
