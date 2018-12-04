@@ -16,11 +16,13 @@
             <p class="summary">
                 摘要：{{ data.news_info.digest }}
             </p>
-            {{ data.news_info.content |safe }}
-        <a href="javascript:;" class="collection block-center" data-newid="" >收藏</a>
-        <a href="javascript:;" class="collected block-center" data-newid="" style="display: none"><span class="out">已收藏</span><span class="over">取消收藏</span></a>
+                {{ data.news_info.content |safe }}
+                    <a href="javascript:;" class="collected block-center" data-newid="{{ data.news_info.id }}" style="display:{% if data.is_collected %}block{% else %}none{% endif %}"><span class="out">已收藏</span><span class="over">取消收藏</span></a>
+                    <a href="javascript:;" class="collection block-center" data-newid="{{ data.news_info.id }}" style="display:{% if data.is_collected %}none{% else %}block{% endif %}" >收藏</a>
+        {#        <a href="javascript:;" class="collection block-center" data-newid="" >收藏</a>#}
+        {#        <a href="javascript:;" class="collected block-center" data-newid="" style="display: none"><span class="out">已收藏</span><span class="over">取消收藏</span></a>#}
 
-        {%  if data.user_info %}
+            {%  if data.user_info %}
              <form action="" class="comment_form">
             <div class="person_pic">
                 <img src="../../static/news/images/cat.jpg" alt="用户图标">
