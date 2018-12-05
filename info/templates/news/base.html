@@ -14,6 +14,7 @@
 <body>
     <div class="header_con">
         <div class="header">
+{#            <a href="#" class="logo fl"><img src="../../static/news/images/logo.png" alt="logo"></a>#}
             <a href="#" class="logo fl"><img src="../../static/news/images/logo.png" alt="logo"></a>
             {% block connect %}
 
@@ -22,7 +23,7 @@
             {% if data.user_info %}
             <div class="user_login fr">
                 <img src="../../static/news/images/person01.png" class="lgin_pic">
-                <a href="#">{{ data.user_info.nick_name }}</a>
+                <a href="/user/info">{{ data.user_info.nick_name }}</a>
                 <a href="#" onclick="logout()">退出</a>
             </div>
             {% else %}

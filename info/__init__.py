@@ -50,6 +50,9 @@ def curren_app(config_name):
     from info.utils.commons import  index_class
     app.add_template_filter(index_class,"index_class")
 
+    from info.modules.porfile import user_blue
+    app.register_blueprint(user_blue)
+
     print(app.url_map)
     return app
 
