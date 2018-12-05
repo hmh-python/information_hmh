@@ -4,6 +4,74 @@ from info.utils.commons import user_login_data
 from info.utils.response_code import RET
 from . import news_blue
 
+#点赞功能
+@news_blue.route('/comment_like',methods=["POST"])
+@user_login_data
+def comment_like():
+    """
+    0.判断用户是否登陆
+    1.接受参数  评论id,点赞类型
+    2.效验参数 空效验
+    3.点赞类型
+    4.根据评论编号取对象,判断是否存在
+    5.根据操作类型,点赞或者取消点赞
+    6.然后返回响应.
+    :return:
+    """
+    if not g.user:
+        return jsonify(errno=RET.PARAMERR,errmsg="用户未登录")
+
+    comment_id =  request.json.get("comment_id")
+    action = request.json.get("action")
+
+    if not all([comment_id,action]):
+        return jsonify(errno=RET.PARAMERR,errmsg="参数错误!")
+
+    if not action in (["add","remove"]):
+        return jsonify(errno=RET.PARAMERR,errmsg="点赞参数错误!")
+
+    try:
+        comment = models.Comment.query.get(comment_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="数据库查询失败!")
+
+    if not comment:
+        return jsonify(errno=RET.NODATA,errmsg="无评论数据!")
+
+    if action == "add":
+        try:
+            # commentLike = models.CommentLike.query.get(comment_id)
+            commentLike = models.CommentLike.query.filter(models.CommentLike.comment_id == comment.id,models.CommentLike.user_id==g.user.id).first()
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR,errmsg="数据库查询失败!")
+
+        if commentLike:
+            return jsonify(errno=RET.DATAEXIST, errmsg="已进行过点赞不能重复操作!")
+        else:
+            comment_like = models.CommentLike()
+            comment_like.comment_id = comment_id
+            comment_like.user_id = g.user.id
+            db.session.add(comment_like)
+            db.session.commit()
+            comment.like_count += 1
+            return jsonify(errno=RET.OK,errmsg="点赞成功！")
+    else:
+        try:
+            commentLike = models.CommentLike.query.filter(models.CommentLike.user_id==g.user.id,models.CommentLike.comment_id ==comment_id ).first()
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="数据库查询失败!")
+
+        if not commentLike:
+            return jsonify(errno=RET.NODATA, errmsg="无数据不能进行取消")
+        else:
+            db.session.delete(commentLike)
+            db.session.commit()
+            if comment.like_count > 0:
+                comment.like_count -= 1
+            return jsonify(errno=RET.OK,errmsg="取消点赞成功!")
 
 #添加评论
 @news_blue.route('/news_comment',methods=["POST"])
@@ -169,12 +237,38 @@ def news_item(num):
     for item in comment:
         comment_list.append(item.to_dict())
 
-    #查询评论内容
-    # comment_list = models.Comment.query.filter(models.Comment.news_id==news.id).all()
-    #
-    # new_com_list = [ ]
-    # for comment in comment_list:
-    #     new_com_list.append(comment.to_dict())
+
+    #显示点赞内容  ----未取出数据！！！
+    comment_like = [] #防止未登录情况下的报错
+
+    try:
+        if g.user:  #需要对用户进行判断,不然在不登陆的情况会报错！
+            comment_like = models.CommentLike.query.filter(models.CommentLike.user_id == g.user.id).all()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="数据库查询失败!")
+
+    comment_like_list = []
+    for com_like in comment_like:
+        comment_like_list.append(com_like.comment_id)
+
+
+    # for comment_l  in comment:   点赞是用户的操作,不要按照评论进行提取。
+    #     comment_like = models.CommentLike.query.get(comment_l.id)
+    #     if comment_like:
+    #         comment_like_list.append(comment_like)
+
+    #查看评论计数并添加点赞标记
+
+    comment_list = []
+    for item in comment:
+
+        com_dict = item.to_dict()
+        com_dict["is_like"] = False
+        if g.user and item.id in comment_like_list:
+            com_dict["is_like"] = True
+
+        comment_list.append(com_dict)
 
 
     data = {
@@ -182,7 +276,7 @@ def news_item(num):
         "news_info":news.to_dict(),
         "n_news_list" :n_news_list,
         "is_collected":is_collected,
-        "comment_list" :comment_list,
+        "comment_list" :comment_list
     }
 
     return render_template("news/detail.html",data=data)
