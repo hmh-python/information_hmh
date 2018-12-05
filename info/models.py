@@ -150,7 +150,7 @@ class News(BaseModel, db.Model):
         return resp_dict
 
 
-class Comment(BaseModel, db.Model):
+class Comment(BaseModel,db.Model):
     """评论"""
     __tablename__ = "info_comment"
 

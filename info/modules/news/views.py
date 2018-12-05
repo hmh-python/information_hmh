@@ -5,6 +5,59 @@ from info.utils.response_code import RET
 from . import news_blue
 
 
+#添加评论
+@news_blue.route('/news_comment',methods=["POST"])
+@user_login_data
+def news_comment():
+    """
+    添加评论
+    1.接受参数 user_id,news_id,comment_contents,parent_id
+    1.1判断用户是否为空
+    2.效验参数 空效验
+    3.查看新闻是否存在
+    4.查看是否有父类评论
+    5.把评论添加到数据库
+    6.返回成功信息
+    :return:
+    """
+    if not g.user:
+        return jsonify(errno=RET.NODATA,errmsg="用户未登录")
+
+    news_id = request.json.get("news_id")
+    comment_con = request.json.get("comment")
+    parent_id = request.json.get("parent_id")
+
+    if not all ([news_id,comment_con]):
+        return jsonify(errno=RET.PARAMERR,errmsg="参数错误!")
+    try:
+        news = models.News.query.get(news_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="数据库查询失败!")
+    if not news:
+        return jsonify(errno=RET.NODATA,errmsg="该新闻不存在!")
+
+    comment = models.Comment()
+    comment.user_id = g.user.id
+    comment.news_id = news_id
+    comment.content = comment_con
+
+    if parent_id:
+        comment.parent_id = parent_id
+
+    try:
+        db.session.add(comment)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        return jsonify(errno=RET.DBERR,errmsg="数据库插入报错")
+
+    data = comment.to_dict()
+
+    return jsonify(errno=RET.OK,errmsg="评论加入成功.",data=data)
+
+#点击进行收藏
 @news_blue.route('/news_collect',methods=["POST"])
 @user_login_data
 def news_collect():
@@ -103,11 +156,33 @@ def news_item(num):
     if g.user and news in g.user.collection_news:
         is_collected = True
 
+    #添加评论信息至前端
+    try:
+        comment = models.Comment.query.filter(models.Comment.news_id==num).order_by(models.Comment.create_time.desc()).all()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="数据库查询错误!")
+
+    #查看评论计数
+
+    comment_list = []
+    for item in comment:
+        comment_list.append(item.to_dict())
+
+    #查询评论内容
+    # comment_list = models.Comment.query.filter(models.Comment.news_id==news.id).all()
+    #
+    # new_com_list = [ ]
+    # for comment in comment_list:
+    #     new_com_list.append(comment.to_dict())
+
+
     data = {
         "user_info":g.user.to_dict() if g.user else "" ,#else 后面添加的需要是None 并不能是 “ ”这样表明是一个空格
         "news_info":news.to_dict(),
         "n_news_list" :n_news_list,
-        "is_collected":is_collected
+        "is_collected":is_collected,
+        "comment_list" :comment_list,
     }
 
     return render_template("news/detail.html",data=data)
