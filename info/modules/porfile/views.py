@@ -1,8 +1,60 @@
-from info import db
+from info import db,constants
 from info.utils.commons import user_login_data
 from info.utils.response_code import RET
 from . import user_blue
 from flask import render_template,g,redirect,request, jsonify,current_app
+from info.utils.image_storage import image_stor
+
+
+#上传头像
+@user_blue.route('/pic_info',methods=["GET","POST"])
+@user_login_data
+def pic_info():
+
+    if not g.user:
+        return jsonify(errno=RET.PARAMERR,errmsg="用户未登录!")
+
+    if request.method == "GET":
+
+        data = g.user.to_dict()
+        # data["avatar_url"] = constants.QINIU_DOMIN_PREFIX + g.user.avatar_url
+
+        return render_template("news/user_pic_info.html",data=data)
+
+    """
+    1.获取参数,用户,上传的图片
+    2.效验图片是否不为空
+    3.通过七牛云上传图片
+    4.设置图片到用户对象 ！
+    4.返回响应
+    """
+
+    image = request.files.get("avatar")
+
+    if not image:
+        return jsonify(errno=RET.NODATA,errmsg="无图片信息")
+
+    try:
+        image_name = image_stor(image.read())
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.THIRDERR,errmsg="七牛云访问错误")
+
+    if not image_name:
+        return jsonify(errno=RET.NODATA,errmsg="图片上传失败!")
+
+    try:
+        g.user.avatar_url = image_name
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DATAERR,errmsg="数据库修改失败!")
+
+    avatar_url = constants.QINIU_DOMIN_PREFIX + image_name
+    # print (avatar_url)
+    data = {"avatar_url":avatar_url}
+
+    return jsonify(errno=RET.OK,errmsg="图片设置成功",data=data )
 
 
 #密码修改
@@ -91,8 +143,12 @@ def user_info():
 
     if not g.user:
         return  redirect("/")
+
+    user_info = g.user.to_dict()
+    # user_info["avatar_url"] = constants.QINIU_DOMIN_PREFIX  + g.user.avatar_url
+
     data = {
-    "user_info" : g.user.to_dict()
+        "user_info" :user_info
     }
 
     return render_template("news/user.html",data=data)
