@@ -1,9 +1,61 @@
-from info import db,constants
+from info import db,constants,models
 from info.utils.commons import user_login_data
 from info.utils.response_code import RET
 from . import user_blue
 from flask import render_template,g,redirect,request, jsonify,current_app
 from info.utils.image_storage import image_stor
+
+#显示用户收藏
+@user_blue.route('/user_collection',methods=["GET"])
+@user_login_data
+def user_collection():
+
+    if not g.user:
+        return jsonify(errno=RET.PARAMERR,errmsg="用户未登录!")
+
+    """
+    1.接受参数 第几页 一页显示的行数
+    2.效验参数 是否为空如为空设置默认值
+    3.从数据库查询用户的收藏记录
+    4.返回响应
+
+    1.获取参数
+    2.参数类型转换
+    3.分页查询,每页10条
+    4.取出分页对象属性,总页数,当前页,当前页对象列表
+    5.拼接数据,渲染页面
+    :return:
+    """
+    page = request.args.get("p", "1")
+
+    try:
+        page = int(page)
+    except Exception as e:
+        page = 1
+
+    try:
+        # comment_paginate = models.Comment.query.filter(models.Comment.user_id == g.user.id).paginate(page,7,False)
+        collention_paginate = g.user.collection_news.order_by(models.News.create_time.desc()).paginate(page,5,False)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="数据库查询失败!")
+
+    page = collention_paginate.page
+    pages = collention_paginate.pages
+    comment_item = collention_paginate.items
+
+    comment_list = []
+    for com_item in comment_item:
+        # print (com_item)
+        comment_list.append(com_item.to_dict())
+
+    data = {
+        "currentPage":page,
+        "totalPage" :pages,
+        "comment_list" : comment_list
+    }
+
+    return render_template('news/user_collection.html',data=data)
 
 
 #上传头像

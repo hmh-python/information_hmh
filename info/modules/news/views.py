@@ -233,9 +233,9 @@ def news_item(num):
 
     #查看评论计数
 
-    comment_list = []
-    for item in comment:
-        comment_list.append(item.to_dict())
+    # comment_list = []
+    # for item in comment:
+    #     comment_list.append(item.to_dict())
 
 
     #显示点赞内容  ----未取出数据！！！
