@@ -5,6 +5,66 @@ from . import user_blue
 from flask import render_template,g,redirect,request, jsonify,current_app
 from info.utils.image_storage import image_stor
 
+#新闻发布
+@user_blue.route('/news_release',methods=["GET","POST"])
+@user_login_data
+def news_release():
+
+    if not g.user:
+        return jsonify(errno=RET.SESSIONERR,errmsg="用户未登录")
+    try:
+        Category = models.Category.query.all()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="查询数据库失败!")
+
+    if request.method == "GET":
+        return render_template("news/user_news_release.html",data = Category)
+    """
+    1.form 表单提交 接受参数 title  digest  index_image  content category_id
+    2.效验是否为空
+    3.上传图像
+    4.创建新闻对象
+    5.将新闻放入数据库进行审核
+    6.返回响应
+    :return:
+    """
+    title = request.form.get("title")
+    digest = request.form.get("digest")
+    index_image = request.files.get("index_image")
+    content = request.form.get("content")
+    category_id = request.form.get("category_id")
+
+    if not all ([title,digest,index_image,content,category_id]):
+        return jsonify(errno=RET.NODATA,errmsg="参数不全")
+
+    try:
+        image_name = image_stor(index_image.read())
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.THIRDERR,errmsg="访问七牛云失败!")
+
+    if not image_name:
+        return jsonify(errno=RET.NODATA,errmsg="新闻图片不存在!")
+
+    try:
+        add_news = models.News()
+        add_news.title = title
+        add_news.source = g.user.nick_name
+        add_news.digest = digest
+        add_news.content = content
+        add_news.index_image_url = constants.QINIU_DOMIN_PREFIX + image_name
+        add_news.category_id = category_id
+        add_news.user_id = g.user.id
+        add_news.status = 1
+        db.session.add(add_news)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        return  jsonify(errno=RET.DBERR,errmsg="访问数据库失败!")
+
+    return jsonify(errno=RET.OK,errmsg="新闻发布成功!")
+
 #显示用户收藏
 @user_blue.route('/user_collection',methods=["GET"])
 @user_login_data
