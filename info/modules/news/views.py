@@ -4,6 +4,54 @@ from info.utils.commons import user_login_data
 from info.utils.response_code import RET
 from . import news_blue
 
+#关注功能
+@news_blue.route('/followed_user',methods=["POST"])
+@user_login_data
+def followed_user():
+
+    """
+    0.判断用户是否登陆
+    1.获取参数 作者id,关注的类型
+    2.参数效验 空效验
+    3.类型效验
+    4.根据作者编号取出作者对象,判断作者对象是否存在
+    4.写入数据库中,判断是关注还是取消关注
+    5.返回响应
+    :return:
+    """
+    if not g.user:
+        return jsonify(errno=RET.SESSIONERR,errmsg="用户未登录")
+
+    author_id = request.json.get("user_id")
+    action = request.json.get("action")
+
+    if not all ([author_id,action]):
+        return jsonify(errno=RET.NODATA,errmsg="参数不全")
+
+    if not action in ["follow","unfollow"]:
+        return jsonify(errno=RET.PARAMERR,errmsg="参数错误!")
+    try:
+        author = models.User.query.filter(models.User.id == author_id).first()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="数据库查询失败!")
+
+    if not author:
+        return jsonify(errno=RET.NODATA,errmsg="作者不存在!")
+    try:
+        if action =="follow" and  g.user not in author.followers:
+        # if action == "follow":
+        #     if not g.user in author.followers:
+            author.followers.append(g.user)
+        if action == "unfollow"  and g.user in author.followers:
+            # if g.user in author.followers:
+            author.followers.remove(g.user)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="数据库操作失败!")
+
+    return jsonify(errno=RET.OK, errmsg="关注成功")
+
 #点赞功能
 @news_blue.route('/comment_like',methods=["POST"])
 @user_login_data
@@ -270,13 +318,20 @@ def news_item(num):
 
         comment_list.append(com_dict)
 
+    #判断当前登录的用户,是否有关注该新闻的作者
+    is_follow = False
+    if g.user and news.user:
+        if g.user in news.user.followers: #登陆的用户,在作者的粉丝列表中
+            # print (news.user.followers)
+            is_follow = True
 
     data = {
         "user_info":g.user.to_dict() if g.user else "" ,#else 后面添加的需要是None 并不能是 “ ”这样表明是一个空格
         "news_info":news.to_dict(),
         "n_news_list" :n_news_list,
         "is_collected":is_collected,
-        "comment_list" :comment_list
+        "comment_list" :comment_list,
+        "is_follow" : is_follow
     }
 
     return render_template("news/detail.html",data=data)

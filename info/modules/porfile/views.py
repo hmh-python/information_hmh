@@ -5,6 +5,56 @@ from . import user_blue
 from flask import render_template,g,redirect,request, jsonify,current_app
 from info.utils.image_storage import image_stor
 
+
+#我的关注
+@user_blue.route('/user_follow')
+@user_login_data
+def user_follow():
+    """
+    2.接受参数
+    3.转换类型
+    4.查询分页数据
+    4.获取分页对象属性,总页数,当前页,当前页新闻列表
+    5.5.新闻列表转成,字典列表
+    5.返回响应数据
+    :return:
+    - 1.获取参数
+    - 2.参数类型转换
+    - 3.分页查询用户发布的新闻
+    - 4.获取分页对象属性,总页数,当前页,当前页新闻列表
+    - 5.新闻列表转成,字典列表
+    - 6.携带数据,渲染页面
+    """
+    page = request.args.get("p","1")
+    try:
+        page = int(page)
+    except Exception as e:
+        current_app.logger.error(e)
+        page = 1
+
+    try:
+        paginate = g.user.followed.paginate(page,4,False)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="数据库查询失败!")
+
+    currentPage = paginate.page
+    totalPage = paginate.pages
+    items = paginate.items
+
+    follow_list = []
+    for item in items:
+        follow_list.append(item.to_dict())
+
+    data = {
+        "currentPage" :currentPage,
+        "totalPage" : totalPage,
+        "follow_list" : follow_list
+    }
+
+    return render_template("news/user_follow.html",data=data)
+
+
 #新闻列表
 @user_blue.route('/news_list',methods=["GET"])
 @user_login_data
@@ -138,7 +188,7 @@ def user_collection():
 
     try:
         # comment_paginate = models.Comment.query.filter(models.Comment.user_id == g.user.id).paginate(page,7,False) 这是
-        # 查询用户的评论并不是收藏
+        # 查询用户的收藏并不是评论
         collention_paginate = g.user.collection_news.order_by(models.News.create_time.desc()).paginate(page,5,False)
     except Exception as e:
         current_app.logger.error(e)
