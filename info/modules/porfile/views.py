@@ -5,6 +5,48 @@ from . import user_blue
 from flask import render_template,g,redirect,request, jsonify,current_app
 from info.utils.image_storage import image_stor
 
+#新闻列表
+@user_blue.route('/news_list',methods=["GET"])
+@user_login_data
+def news_list():
+
+    """
+    1.获取参数
+    2.转换类型
+    3.在数据库进行查询需要审核的新闻列表,分页查询
+    4.返回信息
+    :return:
+    """
+    page = request.args.get("p","1")
+
+    try:
+        page = int(page)
+    except Exception as e:
+        page = 1
+
+    try:
+        news_li = g.user.news_list.paginate(page,4,False)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="数据库查询失败！")
+
+    currentPage = news_li.page
+    totalPage = news_li.pages
+    news_pages_item = news_li.items
+
+    news_li_new = [ ]
+    for news in news_pages_item:
+        news_li_new.append(news.to_review_dict())
+
+    data = {
+        "news_list" : news_li_new,
+        "currentPage" : currentPage,
+        "totalPage" : totalPage
+    }
+
+
+    return render_template('news/user_news_list.html',data=data)
+
 #新闻发布
 @user_blue.route('/news_release',methods=["GET","POST"])
 @user_login_data
@@ -47,20 +89,21 @@ def news_release():
     if not image_name:
         return jsonify(errno=RET.NODATA,errmsg="新闻图片不存在!")
 
+    add_news = models.News()
+    add_news.title = title
+    add_news.source = g.user.nick_name
+    add_news.digest = digest
+    add_news.content = content
+    add_news.index_image_url = constants.QINIU_DOMIN_PREFIX + image_name
+    add_news.category_id = category_id
+    add_news.user_id = g.user.id
+    add_news.status = 1
     try:
-        add_news = models.News()
-        add_news.title = title
-        add_news.source = g.user.nick_name
-        add_news.digest = digest
-        add_news.content = content
-        add_news.index_image_url = constants.QINIU_DOMIN_PREFIX + image_name
-        add_news.category_id = category_id
-        add_news.user_id = g.user.id
-        add_news.status = 1
         db.session.add(add_news)
         db.session.commit()
     except Exception as e:
         current_app.logger.error(e)
+        db.session.rollback()
         return  jsonify(errno=RET.DBERR,errmsg="访问数据库失败!")
 
     return jsonify(errno=RET.OK,errmsg="新闻发布成功!")
@@ -94,7 +137,8 @@ def user_collection():
         page = 1
 
     try:
-        # comment_paginate = models.Comment.query.filter(models.Comment.user_id == g.user.id).paginate(page,7,False)
+        # comment_paginate = models.Comment.query.filter(models.Comment.user_id == g.user.id).paginate(page,7,False) 这是
+        # 查询用户的评论并不是收藏
         collention_paginate = g.user.collection_news.order_by(models.News.create_time.desc()).paginate(page,5,False)
     except Exception as e:
         current_app.logger.error(e)
@@ -103,7 +147,6 @@ def user_collection():
     page = collention_paginate.page
     pages = collention_paginate.pages
     comment_item = collention_paginate.items
-
     comment_list = []
     for com_item in comment_item:
         # print (com_item)

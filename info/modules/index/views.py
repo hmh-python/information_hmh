@@ -44,7 +44,7 @@ def news_list():
         o_new_cid = ""
         if new_cid != 1:
             o_new_cid = (models.News.category_id == new_cid)
-        paginate = models.News.query.filter(o_new_cid).order_by(models.News.create_time.desc()).paginate(new_page,per_page,False)
+        paginate = models.News.query.filter(o_new_cid,models.News.status == 0).order_by(models.News.create_time.desc()).paginate(new_page,per_page,False)
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR,errmsg="数据库查询失败!")
