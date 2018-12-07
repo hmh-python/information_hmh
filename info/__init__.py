@@ -1,12 +1,12 @@
 import logging
 from logging.handlers import RotatingFileHandler
-from flask import Flask
+from flask import Flask,render_template,g
 from Config import Config_dict
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect,generate_csrf
 from flask_session import Session
 from redis import StrictRedis
-
+from info.utils.commons import user_login_data
 
 db = SQLAlchemy()
 
@@ -44,6 +44,16 @@ def curren_app(config_name):
         resp.set_cookie("csrf_token",csrf_token)
         return resp
 
+    @app.errorhandler(404)
+    @user_login_data
+    def page_not_found(e):
+
+        data = {
+            "user_info" : g.user.to_dict() if g.user else ""
+        }
+
+        return render_template("news/404.html",data=data)
+
     from info.modules.news import news_blue
     app.register_blueprint(news_blue)
 
@@ -55,8 +65,6 @@ def curren_app(config_name):
 
     print(app.url_map)
     return app
-
-
 
 
 
