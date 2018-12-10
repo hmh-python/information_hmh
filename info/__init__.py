@@ -38,30 +38,32 @@ def curren_app(config_name):
     from info.modules.passport import passport_bule
     app.register_blueprint(passport_bule)
 
+    from info.modules.news import news_blue
+    app.register_blueprint(news_blue)
+
+    from info.modules.porfile import user_blue
+    app.register_blueprint(user_blue)
+
+    from info.modules.admin import admin_blue
+    app.register_blueprint(admin_blue)
+
+    from info.utils.commons import  index_class
+    app.add_template_filter(index_class,"index_class")
+
     @app.after_request
     def at_request(resp):
         csrf_token = generate_csrf()
-        resp.set_cookie("csrf_token",csrf_token)
+        resp.set_cookie("csrf_token", csrf_token)
         return resp
 
     @app.errorhandler(404)
     @user_login_data
     def page_not_found(e):
-
         data = {
-            "user_info" : g.user.to_dict() if g.user else ""
+            "user_info": g.user.to_dict() if g.user else ""
         }
 
-        return render_template("news/404.html",data=data)
-
-    from info.modules.news import news_blue
-    app.register_blueprint(news_blue)
-
-    from info.utils.commons import  index_class
-    app.add_template_filter(index_class,"index_class")
-
-    from info.modules.porfile import user_blue
-    app.register_blueprint(user_blue)
+        return render_template("news/404.html", data=data)
 
     print(app.url_map)
     return app

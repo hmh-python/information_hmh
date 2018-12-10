@@ -23,6 +23,7 @@ def logout_index():
         session.pop("user_id",None)
         session.pop("mobile",None)
         session.pop("nick_name",None)
+        session.pop("is_admin",None)
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DATAERR,errmsg="参数错误!")
@@ -66,6 +67,7 @@ def login_index():
         session["user_id"] = db_user.id
         session["mobile"] = mobile
         session["nick_name"] = db_user.nick_name
+        session["is_admin"] = db_user.is_admin
         db_user.last_login = datetime.now()
 
         return jsonify(errno=RET.OK,errmsg="登陆成功!")
@@ -96,18 +98,21 @@ def register_index():
         return jsonify(errno=RET.NODATA,errmsg="参数不能为空")
     try:
         redis_sms_code = redis_store.get("sms_code:%s"%mobile)
-        if sms_code != redis_sms_code:
-            return jsonify(errno=RET.DATAERR,errmsg="验证码不正确!")
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR,errmsg="数据库提取验证码失败!")
+
     if not redis_sms_code:
         return jsonify(errno=RET.NODATA,errmsg="验证码已过期!")
+
+    if sms_code != redis_sms_code:
+        return jsonify(errno=RET.DATAERR, errmsg="验证码不正确!")
+
     # if not re.match(r"(\d{6,13})|(\w{6,13})",password):
     #     return jsonify(errno=RET.DATAERR,errmsg="密码过于简单!")
     try:
         user = models.User.query.filter(models.User.nick_name==mobile).first()
-        print (user)
+        # print (user)
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR,errmsg="数据库查询数据错误!")
