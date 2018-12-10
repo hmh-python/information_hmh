@@ -9,6 +9,113 @@ from info.utils.commons import user_login_data
 from info.utils.response_code import RET
 from . import admin_blue
 
+#新闻模板内容编辑
+@admin_blue.route('/news_edit_detail',methods=["GET","POST"])
+@user_login_data
+def news_edit_detail():
+
+    """
+    1.判断请求方式
+    2.如GET 接受参数
+    3.参数空效验
+    4.查询数据库新闻内容
+    5.返回模板进行展示
+    6.如POST ajaxSubmit --这是ajax中的表单请求
+    7.按照表单接收参数
+    8.参数判断
+    9.查询数据库是否存在该新闻
+    9.数据修改
+    10.提交数据库
+    :return:
+    """
+    if request.method == "GET":
+        news_id = request.args.get("news_id")
+        if not news_id:
+            return render_template('admin/news_edit_detail.html',errmsg="参数不全!")
+        try:
+            news = models.News.query.get(news_id)
+        except Exception as e:
+            current_app.logger.error(e)
+            return render_template('admin/news_edit_detail.html',errmsg="查询数据库失败!")
+        if not news: return render_template('admin/news_edit_detail.html',errmsg="新闻不存在!")
+        try:
+            categorys = models.Category.query.all()
+        except Exception as e:
+            current_app.logger.error(e)
+            return render_template('admin/news_edit_detail.html', errmsg="查询数据库失败!")
+        if not categorys: return render_template('admin/news_edit_detail.html',errmsg="分类不存在!")
+        category_list = []
+        for category in categorys:
+            category_list.append(category.to_dict())
+
+        return render_template('admin/news_edit_detail.html',data=news.to_dict(),category_list=category_list)
+
+    news_id = request.form.get("news_id")
+    news_title = request.form.get("title")
+    news_category = request.form.get("category")
+    news_digest = request.form.get("digest")
+    news_image = request.files.get("image")
+    news_content = request.form.get("content")
+
+    if not all ([news_id,news_title,news_category,news_digest,news_content]):
+        return jsonify(errno=RET.PARAMERR,errmsg="参数不全!")
+    try:
+        news_id = int(news_id)
+        news = models.News.query.get(news_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="查询数据库失败!")
+    try:
+        news.title = news_title
+        news.category_id = news_category
+        news.digest = news_digest
+        news.index_image_url = news_image
+        news.content = news_content
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="更新数据库失败!")
+    return jsonify(errno=RET.OK,errmsg="数据编辑成功!")
+
+
+#新闻板式展示
+@admin_blue.route('/news_edit',methods=['GET'])
+@user_login_data
+def news_edit():
+
+    page = request.args.get("p","1")
+    content = request.args.get("content")
+    try:
+        page = int(page)
+    except Exception as e:
+        page = 1
+    news_content = []
+    if content:
+        news_content.append(models.News.title.contains(content))
+    try:
+        paginate = models.News.query.filter(*news_content).order_by(models.News.create_time.desc()).paginate(page,constants.ADMIN_NEWS_PAGE_MAX_COUNT,False)
+    except Exception as e:
+        current_app.logger.error(e)
+        return render_template('admin/news_edit.html',errmsg="数据库查询失败!")
+
+    currentPage = paginate.page
+    totalPage = paginate.pages
+    items = paginate.items
+
+    news_list = []
+    for item in items:
+        news_list.append(item.to_review_dict())
+
+    data = {
+        "currentPage" :currentPage,
+        "totalPage" : totalPage,
+        "news_list" : news_list
+    }
+
+
+    return render_template('admin/news_edit.html',data=data)
+
+
 #新闻审核详情
 @admin_blue.route('/news_review_detail',methods=["GET","POST"])
 @user_login_data
