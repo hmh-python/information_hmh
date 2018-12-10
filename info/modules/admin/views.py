@@ -2,12 +2,60 @@ from datetime import timedelta
 import datetime
 from flask import render_template,request, jsonify,current_app,session,redirect,g
 import time
-
 from info import constants, db
 from info import models
 from info.utils.commons import user_login_data
 from info.utils.response_code import RET
 from . import admin_blue
+
+#编辑新闻分类
+@admin_blue.route('/add_category',methods=["POST"])
+@user_login_data
+def add_category():
+
+    category_id = request.json.get("id")
+    category_name = request.json.get("name")
+    if not category_name:
+        return jsonify(errno=RET.PARAMERR,errmsg="参数不全!")
+    if category_id:
+        try:
+            category = models.Category.query.get(category_id)
+            if not category: return jsonify(errno=RET.DATAERR,errmsg="该分类不存在!")
+            category.name = category_name
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DATAERR,errmsg="数据库操作失败1!")
+    else:
+        category = models.Category()
+        category.name = category_name
+        try:
+            db.session.add(category)
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DATAERR,errmsg="数据库操作失败!")
+
+    return jsonify(errno=RET.OK,errmsg="操作成功!")
+
+
+#新闻分类
+@admin_blue.route('/news_type')
+@user_login_data
+def news_type():
+
+    try:
+        category = models.Category.query.all()
+    except Exception as e:
+        current_app.logger.error(e)
+        return render_template('admin/news_type.html',errmsg="数据库查询失败!")
+
+    cate_list = []
+    for item in category:
+        cate_list.append(item.to_dict())
+
+    return render_template('admin/news_type.html',data=cate_list)
+
 
 #新闻模板内容编辑
 @admin_blue.route('/news_edit_detail',methods=["GET","POST"])
@@ -65,11 +113,23 @@ def news_edit_detail():
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR,errmsg="查询数据库失败!")
+
+    if not news: return jsonify(errno=RET.DATAERR,errmsg="新闻不存在!")
+
     try:
         news.title = news_title
         news.category_id = news_category
         news.digest = news_digest
-        news.index_image_url = news_image
+        if news_image:
+            from info.utils.image_storage import image_stor
+            try:
+                qiniu_image = image_stor(news_image.read())
+            except Exception as e:
+                current_app.logger.error(e)
+                return jsonify(errno=RET.THIRDERR,errmsg="七牛云异常!")
+            if not qiniu_image:
+                return jsonify(errno=RET.NODATA,errmsg="图片上传失败")
+            news.index_image_url = constants.QINIU_DOMIN_PREFIX + qiniu_image
         news.content = news_content
         db.session.commit()
     except Exception as e:
