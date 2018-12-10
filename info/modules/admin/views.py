@@ -2,11 +2,126 @@ from datetime import timedelta
 import datetime
 from flask import render_template,request, jsonify,current_app,session,redirect,g
 import time
+
+from info import constants, db
 from info import models
 from info.utils.commons import user_login_data
 from info.utils.response_code import RET
 from . import admin_blue
 
+#新闻审核详情
+@admin_blue.route('/news_review_detail',methods=["GET","POST"])
+@user_login_data
+def news_review_detail():
+
+    if request.method == "GET":
+        news_id = request.args.get("news_id")
+
+        # print (news_id)
+        if not news_id:
+            return render_template('admin/news_review_detail.html', errmsg="参数错误!")
+
+        try:
+            news_item = models.News.query.get(news_id)
+            # news_item = models.News.query.filter(models.News.id == news_id).first()
+            # print (news_item)
+        except Exception as e:
+            current_app.logger.error(e)
+            return render_template('admin/news_review_detail.html',errmsg="查询数据库中新闻失败!")
+
+        return render_template('admin/news_review_detail.html',data = news_item.to_dict())
+
+    news_id = request.json.get("news_id")
+    action = request.json.get("action")
+    reason = request.json.get("reason")  #如不通过标注不通过理由
+
+    if not all ([news_id,action]):
+        return jsonify(errno=RET.PARAMERR,errmsg="参数错误!")
+    if not action in ['reject','accept']:
+        return jsonify(errno=RET.PARAMERR,errmsg="参数类型错误!")
+    if action == "accept":
+        try:
+            news = models.News.query.get(news_id)
+            news.status = 0
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR,errmsg="数据库操作失败!")
+    else:
+        try:
+            news = models.News.query.get(news_id)
+            news.status = -1
+            news.reason = reason
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR,errmsg="数据库操作失败!")
+    return jsonify(errno=RET.OK,errmsg="数据库操作成功!")
+
+#新闻审核展示
+@admin_blue.route('/news_review',methods=["GET"])
+@user_login_data
+def news_review():
+
+    page = request.args.get('p','1')
+    content = request.args.get("content")
+    try:
+        page = int(page)
+    except Exception as e:
+        page = 1
+
+    sel_list = [models.News.status != '0']
+    if content:
+        sel_list.append(models.News.title.contains(content))
+    try:
+        paginate = models.News.query.filter(*sel_list).paginate(page,constants.ADMIN_NEWS_PAGE_MAX_COUNT,False)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR,errmsg="查询数据库失败!")
+    currentPage = paginate.page
+    totalPage = paginate.pages
+    items = paginate.items
+    # print (items)
+
+    new_rev_list = []
+    for new in items:
+        new_rev_list.append(new.to_review_dict())
+    # print (new_rev_list)
+    data = {
+        "currentPage" :currentPage,
+        "totalPage" : totalPage,
+        "news_item" : new_rev_list
+    }
+
+    return render_template('admin/news_review.html',data=data)
+
+    # content = request.form.get("content")
+    # # print (content)
+    # try:
+    #     paginate = models.News.query.filter(models.News.status != '0',models.News.title.contains(content)).paginate(1,constants.ADMIN_NEWS_PAGE_MAX_COUNT,False)
+    #
+    # except Exception as e:
+    #     current_app.logger.error(e)
+    #     return render_template('admin/news_review.html', errmsg="查询数据库失败!")
+    #
+    # currentPage = paginate.page
+    # totalPage = paginate.pages
+    # items = paginate.items
+    #
+    # news_item = []
+    # for item in items:
+    #     news_item.append(item.to_review_dict())
+    #     # print (item.to_dict())
+    #
+    # data = {
+    #     "currentPage": currentPage,
+    #     "totalPage": totalPage,
+    #     "news_item": news_item
+    # }
+    # return render_template('admin/news_review.html',data=data)
+
+
+#用户管理--用户列表
 @admin_blue.route('/user_list')
 @user_login_data
 def user_list():
@@ -41,7 +156,7 @@ def user_list():
     return render_template('admin/user_list.html',data=data)
 
 
-
+#用户管理---用户统计
 @admin_blue.route('/user_count')
 @user_login_data
 def user_count():
