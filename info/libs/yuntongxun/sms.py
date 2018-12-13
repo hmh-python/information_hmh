@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 
-from info.libs.yuntongxun.CCPRestSDK import REST
+#from info.libs.yuntongxun.CCPRestSDK import REST
+from . import CCPRestSDK
 
 # 说明：主账号，登陆云通讯网站后，可在"控制台-应用"中看到开发者主账号ACCOUNT SID
 _accountSid = '8aaf0708674db3ee01675e4d1e810f8e'
@@ -50,7 +51,7 @@ class CCP(object):
         # 判断是否存在类属性_instance，_instance是类CCP的唯一对象，即单例
         if not hasattr(CCP, "_instance"):
             cls._instance = super(CCP, cls).__new__(cls, *args, **kwargs)
-            cls._instance.rest = REST(_serverIP, _serverPort, _softVersion)
+            cls._instance.rest = CCPRestSDK.REST(_serverIP, _serverPort, _softVersion)
             cls._instance.rest.setAccount(_accountSid, _accountToken)
             cls._instance.rest.setAppId(_appId)
         return cls._instance
