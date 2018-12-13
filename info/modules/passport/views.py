@@ -182,9 +182,9 @@ def sms_code():
     if image_code.lower() == redis_image_code.lower():
         # return jsonify(errno=RET.OK, errmsg="验证码输入正确！")
         sms_num = "%06d"%random.randint(0,999999)
-        # ccp = CCP()
-        # result = ccp.send_template_sms(mobile, [sms_num, constants.SMS_CODE_REDIS_EXPIRES/60], 1)
-        result = 0
+        ccp = CCP()
+        result = ccp.send_template_sms(mobile, [sms_num, constants.SMS_CODE_REDIS_EXPIRES/60], 1)
+        # result = 0
     try:
         if result  == 0:
             redis_store.set("sms_code:%s"%mobile,sms_num,constants.SMS_CODE_REDIS_EXPIRES)
