@@ -111,7 +111,7 @@ def register_index():
     # if not re.match(r"(\d{6,13})|(\w{6,13})",password):
     #     return jsonify(errno=RET.DATAERR,errmsg="密码过于简单!")
     try:
-        user = models.User.query.filter(models.User.nick_name==mobile).first()
+        user = models.User.query.filter(models.User.mobile==mobile).first()
         # print (user)
     except Exception as e:
         current_app.logger.error(e)
